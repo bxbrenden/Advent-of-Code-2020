@@ -16,18 +16,22 @@ def open_input(input_file):
         return inp_ls
 
 
-def sums_to_2020(inp_ls):
-    '''Given an input list `inp_ls` of integers, return a tuple of the two that add to 2020'''
+def sums_to_x(inp_ls, x):
+    '''Given an input list `inp_ls` of integers, return a tuple of the two that add to x'''
+    #print(f'The length of the input list given to `sums_to_x` is {len(inp_ls)}')
     first = inp_ls[0]
     for num in inp_ls[1:]:
-        if first + num == 2020:
+        if first + num == x:
             return (first, num)
-    return sums_to_2020(inp_ls[1:])
+    if len(inp_ls[1:]) > 3:
+        return sums_to_x(inp_ls[1:], x)
+    else:
+        return None
 
 
 def main():
     numbers = open_input('input.txt')
-    num1, num2 = sums_to_2020(numbers)
+    num1, num2 = sums_to_x(numbers, 2020)
     print(f'The two numbers that add to 2020 are {num1} and {num2}')
     print(f'ANSWER: the product of {num1} and {num2} is {num1 * num2}')
 
