@@ -30,20 +30,40 @@ def validate_password(pass_and_policy):
     min_max = [int(num) for num in char_range.split('-')]
     min_chars = min_max[0]
     max_chars = min_max[1]
-    print(f'pass_and_policy: {pass_and_policy}')
-    print(f'policy: {policy}')
-    print(f'passwd: {passwd}')
-    print(f'char: {char}')
-    print(f'min_chars: {min_chars}')
-    print(f'max_chars: {max_chars}')
-    print('\n')
+    #print(f'pass_and_policy: {pass_and_policy}')
+    #print(f'policy: {policy}')
+    #print(f'passwd: {passwd}')
+    #print(f'char: {char}')
+    #print(f'min_chars: {min_chars}')
+    #print(f'max_chars: {max_chars}')
+    #print('\n')
+
+    char_count = Counter(passwd)
+    count = char_count[char]
+    if count <= max_chars and count >= min_chars:
+        print(f'{pass_and_policy} is a valid password.')
+        print(f'    Policy requires <= {max_chars} instances of {char}.')
+        print(f'    Policy requires >= {min_chars} instances of {char}.')
+        print(f'    Password has {count} instances of {char}')
+        return True
+    else:
+        print(f'{pass_and_policy} is NOT a valid password!')
+        print(f'    Policy requires <= {max_chars} instances of {char}.')
+        print(f'    Policy requires >= {min_chars} instances of {char}.')
+        print(f'    Password has {count} instances of {char}')
+        return False
 
 
 def main():
     input_file = 'input.txt'
     passwords = read_input(input_file)
+    validities = []
     for passwd in passwords:
-        validate_password(passwd)
+        is_valid = validate_password(passwd)
+        validities.append(is_valid)
+
+    num_valid = len([v for v in validities if v == True])
+    print(f'ANSWER: valid number of passwords is {num_valid}')
 
 
 if __name__ == '__main__':
