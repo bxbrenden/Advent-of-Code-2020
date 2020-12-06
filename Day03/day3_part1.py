@@ -16,11 +16,29 @@ def read_input(input_file):
         sys.exit(1)
 
 
+def find_min_grid_width(rows):
+    '''Given an int `rows`, find the minimum width (chars) a grid can be to allow right-3, down-1 traversal'''
+    if rows > 1:
+        return rows * 3 + -2
+    else:
+        return 4
+
+
+def construct_repeated_grid(grid, min_width):
+    '''Given a list of strings representing grid rows, return a list of strings where each row is repeated
+       enough times to support a minimum width of `min_width`.'''
+    ...
+
+
 def main():
     input_file = 'test_input.txt'
-    input_list = read_input(input_file)
-    for l in input_list:
+    grid = read_input(input_file)
+    for l in grid:
         print(l)
+
+    rows = len(grid)
+    min_width = find_min_grid_width(rows)
+    print(f'The minimum grid width is: {min_width}')
 
 
 if __name__ == '__main__':
