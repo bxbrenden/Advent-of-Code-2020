@@ -104,7 +104,7 @@ def count_trees(filled_grid):
 
 
 def main():
-    input_file = 'test_input.txt'
+    input_file = 'input.txt'
     grid = read_input(input_file)
 
     rows = len(grid)
@@ -113,8 +113,8 @@ def main():
     rep_grid = construct_repeated_grid(grid, min_width)
     filled_grid = create_filled_grid(rep_grid)
 
-    for row in filled_grid:
-        print(row)
+    #for row in filled_grid:
+    #    print(row)
 
     num_trees = count_trees(filled_grid)
     print(f'ANSWER: the number of trees is {num_trees}')
