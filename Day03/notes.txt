@@ -1,0 +1,12 @@
+Case for row 0:
+- add row 1 to filled, unchanged
+- calculate row 2 using right_x_down_y
+- add row 2 to filled
+
+Case for row 1:
+- skip it
+
+Case for row 2:
+- add row 3 to filled, unchanged
+- calculate row 4 using right_x_down_y
+- add row 4 to filled
