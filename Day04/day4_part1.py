@@ -46,6 +46,7 @@ def has_all_mandatory_keys(passport):
     else:
         return False
 
+
 def validate_passports(passport_list):
     '''Given a list of all the unmodified passport strings (newlines intact), do the following:
        - replace all newlines with spaces
