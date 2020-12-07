@@ -50,6 +50,31 @@ def bisect_rows(boarding_pass, bp_lower=0, bp_upper=128):
             return row
 
 
+def bisect_columns(columns, bp_lower=0, bp_upper=8):
+    '''Get the column number of the seat based on the final 3 chars (all 'L' or 'R')'''
+    section = columns[0]
+    if len(columns) > 1:
+        if section == 'L':
+            lower_bound = bp_lower
+            upper_bound = (bp_upper / 2) + (bp_lower / 2)
+            print(f'The lower bound is now {lower_bound}, and the upper bound is now {upper_bound}')
+            return bisect_columns(columns[1:], lower_bound, upper_bound)
+        elif section == 'R':
+            upper_bound = bp_upper
+            lower_bound = ((bp_upper - bp_lower) / 2) + bp_lower
+            print(f'The lower bound is now {lower_bound}, and the upper bound is now {upper_bound}')
+            return bisect_columns(columns[1:], lower_bound, upper_bound)
+    else:
+        if section == 'L':
+            column = int(bp_lower)
+            print(f'The column for this boarding pass is {column}')
+            return column
+        elif section == 'R':
+            column = int(bp_upper - 1)
+            print(f'The column for this boarding pass is {column}')
+            return column
+
+
 def main():
     input_file = 'input.txt'
     boarding_passes = read_input(input_file)
