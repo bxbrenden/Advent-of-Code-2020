@@ -42,11 +42,11 @@ def bisect_rows(boarding_pass, bp_lower=0, bp_upper=128):
     else:
         if section == 'F':
             row = int(bp_lower)
-            print(f'The row for this boarding pass is: {row}')
+            print(f'The final row for this boarding pass is: {row}')
             return row
         elif section == 'B':
             row = int(bp_upper - 1)
-            print(f'The row for this boarding pass is: {row}')
+            print(f'The final row for this boarding pass is: {row}')
             return row
 
 
@@ -57,29 +57,60 @@ def bisect_columns(columns, bp_lower=0, bp_upper=8):
         if section == 'L':
             lower_bound = bp_lower
             upper_bound = (bp_upper / 2) + (bp_lower / 2)
-            print(f'The lower bound is now {lower_bound}, and the upper bound is now {upper_bound}')
+            print(f'The lower bound is now {int(lower_bound)}, and the upper bound is now {int(upper_bound)}')
             return bisect_columns(columns[1:], lower_bound, upper_bound)
         elif section == 'R':
             upper_bound = bp_upper
             lower_bound = ((bp_upper - bp_lower) / 2) + bp_lower
-            print(f'The lower bound is now {lower_bound}, and the upper bound is now {upper_bound}')
+            print(f'The lower bound is now {int(lower_bound)}, and the upper bound is now {int(upper_bound)}')
             return bisect_columns(columns[1:], lower_bound, upper_bound)
     else:
         if section == 'L':
             column = int(bp_lower)
-            print(f'The column for this boarding pass is {column}')
+            print(f'The final column for this boarding pass is {column}')
             return column
         elif section == 'R':
             column = int(bp_upper - 1)
-            print(f'The column for this boarding pass is {column}')
+            print(f'The final column for this boarding pass is {column}')
             return column
+
+
+def split_rows_and_cols(boarding_pass):
+    '''Return a tuple where index 0 is the 7 row values, and index 1 is the 3 column values'''
+    try:
+        assert len(boarding_pass) == 10
+    except AssertionError:
+        print(f'Error: expected boarding pass to be 10 characters long, but it was {len(boarding_pass)}')
+    else:
+        return (boarding_pass[:7], boarding_pass[7:])
+
+
+def calc_seat_id(boarding_pass):
+    '''Calculate the Seat ID for a boarding pass'''
+    rows, cols = split_rows_and_cols(boarding_pass)
+    row = bisect_rows(rows)
+    column = bisect_columns(cols)
+    seat_id = (row * 8) + column
+    print(f'The Seat ID for boarding pass {boarding_pass} is {seat_id}')
+
+    return seat_id
+
+
+def get_max_seat_id(seat_ids):
+    return max(seat_ids)
 
 
 def main():
     input_file = 'input.txt'
     boarding_passes = read_input(input_file)
-    for bp in boarding_passes:
-        print(bp)
+    seat_ids = []
+    for index, bp in enumerate(boarding_passes):
+        print(f'Starting on boarding pass #{index}')
+        seat_id = calc_seat_id(bp)
+        seat_ids.append(seat_id)
+
+    max_seat_id = get_max_seat_id(seat_ids)
+    print(f'ANSWER: the maximum seat id is {max_seat_id}')
 
 
 if __name__ == '__main__':
