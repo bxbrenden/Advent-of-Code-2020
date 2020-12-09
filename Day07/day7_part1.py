@@ -9,7 +9,7 @@ def read_input(input_file):
         with open(input_file, 'r') as inp:
             input_str = inp.read()
             input_list = input_str.split('\n')
-            return input_list
+            return [x for x in input_list if x != '']
     except:
         print(f'Failed to read specified input file {input_file} with exception {sys.exc_info()}')
         sys.exit(1)
@@ -36,8 +36,8 @@ def parse_container_bag(bag_rule):
     inner_delimiter = ', '
     # Error out on base bags
     if 'contain no other bags' in bag_rule:
-        print('`parse_container_bag` is only supposed to parse rules for bags that contain other bags. Quitting')
-        sys.exit(1)
+        print('`parse_container_bag` is only supposed to parse rules for bags that contain other bags. Skipping')
+        return None
     else:
         spl = bag_rule.split(outer_delimiter)
         outer_bag = spl[0]
@@ -67,6 +67,19 @@ def parse_container_bag(bag_rule):
     return {outer_bag: inner_bag_colors}
 
 
+def bag_dict_to_node(bag_of_dicts):
+    '''Hehe, a bag of dicts 😂'''
+    nodes = []
+    for k, v in bag_of_dicts.items():
+        n1 = Node(k)
+        nodes.append(n1)
+        for val in v:
+            n = Node(v, parent=n1)
+            nodes.append(n)
+
+    return nodes
+
+
 def get_bag_tree(rules):
     '''Get the tree hierarchy of the bags of bags of bags of bags of bags of bags...'''
     # start with the root (base) bags
@@ -83,18 +96,23 @@ def main():
     input_file = 'input.txt'
     bag_rules = read_input(input_file)
 
+    # list where all tree nodes will live
+    nodes = []
+
+    #for rule in bag_rules:
+    #    print(rule)
+
+    base_bag_nodes = get_bag_tree(bag_rules)
+    nodes.extend(base_bag_nodes)
+
     for rule in bag_rules:
-        print(rule)
+        bag_dict = parse_container_bag(rule)
+        if bag_dict:
+            node = bag_dict_to_node(bag_dict)
+            nodes.extend(node)
 
-    # Find all base cases, i.e. all bags that contain no other bags
-    # Find the parent bags for the base cases, i.e. the bags that contain the base case bags
-    # Repeat step 2 until you have reached the outermost of all bags
-    # For each lineage discovered above, create a list of bag colors where index 0 is the outermost and index -1 is the innermost (base)
-    # Identify the bags whose index in each list of colors is less than the index of "shiny gold" and whose lineage contains "shiny gold"
-    # Return / print the count of bags identified in the previous step
-
-    tree = get_bag_tree(bag_rules)
-    pprint(tree)
+    for n in nodes:
+        print(n)
 
 
 if __name__ == '__main__':
