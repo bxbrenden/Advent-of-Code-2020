@@ -1,3 +1,5 @@
+from anytree import Node, RenderTree
+from pprint import pprint
 import sys
 
 
@@ -26,39 +28,55 @@ def find_base_bags(rule_list):
     return base_bags
 
 
-def find_parent_bags(parents, base_bags):
-    '''Starting with a list of parent bag rules and a list of base bags, construct a list of lists where each child list is
-    a bag lineage. Each lineage goes from outermost bag (index 0) to the innermost base bag (index -1)'''
-
-    # Each parent bag contains the string ' bags contain ' exactly once between the name of the parent bag and its list of children
-    parent_delimiter = ' bags contain '
-    for p in parents:
-        parent_spl = p.split(parent_delimiter)
-        parent_color = parent_spl[0]
-        child_list = parent_spl[1]
-
-        child_colors = []
-
-        # if there is an instance of ', ' in child_list, it means there are mulitple child bags
-        child_delimiter = ', '
-        if child_delimiter in child_list:
-            children = child_list.split(child_delimiter)
-            for child in children:
-                # we only care about child color for this part
-                child_spl = child.split(' ')
-                num_bags = int(child_spl[0])
-                child_color = ' '.join(child_spl[1:3])
-                child_colors.append(child_color)
+def parse_container_bag(bag_rule):
+    '''If a bag contains any other bags, parse it into usable pieces and return them'''
+    # example bag of bags:
+    #     plaid gold bags contain 4 dark lime bags, 3 drab aqua bags, 3 dim white bags, 2 mirrored brown bags.
+    outer_delimiter = ' bags contain '
+    inner_delimiter = ', '
+    # Error out on base bags
+    if 'contain no other bags' in bag_rule:
+        print('`parse_container_bag` is only supposed to parse rules for bags that contain other bags. Quitting')
+        sys.exit(1)
+    else:
+        spl = bag_rule.split(outer_delimiter)
+        outer_bag = spl[0]
+        inner_bags = spl[1]
+        inner_bag_colors = []
+        # if there is a comma in the second part of `spl`, it's a list of inner bags. Split them up
+        if inner_delimiter in inner_bags:
+            inner_spl = inner_bags.split(inner_delimiter)
+            for inner_rule in inner_spl:
+                rule_spl = inner_rule.split()
+                try:
+                    # might need this later, grab now
+                    num_inner = int(rule_spl[0])
+                except:
+                    pass
+                inner_color = ' '.join(rule_spl[1:3])
+                inner_bag_colors.append(inner_color)
         else:
-            # we only care about child color for this part
-            child_spl = child_list.split(' ')
-            num_bags = int(child_spl[0])
-            child_color = ' '.join(child_spl[1:3])
-            child_colors.append(child_color)
+            rule_spl = spl[1].split()
+            try:
+                num_inner = int(rule_spl[0])
+            except:
+                pass
+            inner_color = ' '.join(rule_spl[1:3])
+            inner_bag_colors.append(inner_color)
 
-        for cc in child_colors:
-            if cc in base_bags:
-                print(f'{parent_color} bags are the direct parents of {cc} bags')
+    return {outer_bag: inner_bag_colors}
+
+
+def get_bag_tree(rules):
+    '''Get the tree hierarchy of the bags of bags of bags of bags of bags of bags...'''
+    # start with the root (base) bags
+    base_bags = find_base_bags(rules)
+    nodes = []
+    for index, bb in enumerate(base_bags):
+        exec(f'node_{index} = Node("{bb}")')
+        exec(f'nodes.append(node_{index})')
+
+    return nodes
 
 
 def main():
@@ -75,12 +93,8 @@ def main():
     # Identify the bags whose index in each list of colors is less than the index of "shiny gold" and whose lineage contains "shiny gold"
     # Return / print the count of bags identified in the previous step
 
-    base_bags = find_base_bags(bag_rules)
-    print(f'There are {len(base_bags)} base bags')
-
-    parent_rules = [r for r in bag_rules if 'contain no other bags' not in r.lower()]
-
-    lineages = find_parent_bags(bag_rules, base_bags)
+    tree = get_bag_tree(bag_rules)
+    pprint(tree)
 
 
 if __name__ == '__main__':
