@@ -60,54 +60,165 @@ def node_exists(color):
     return count > 0
 
 
-def rule_data_to_cypher(rd):
-    """Given rule data, generate a Cypher query to create nodes + rel's."""
-    # ('vibrant plum', [(5, 'faded blue'), (6, 'dotted black')])
-    # ('faded blue', None)
-    outer_color = rd[0]
-    inners = rd[1]
-    if node_exists(outer_color):
-        if not inners:
-            print('Nothing to create')
-        exist_list = [node_exists(x[1]) for x in inners]
-        if all(exist_list):
-            print('Nothing to create')
-        non_exist_index = [i for i, x in enumerate(exist_list) if x == 0]
-        query = "MATCH (outer:Bag {color: '%s'})\n" % outer_color
-        query += "CREATE "
-        for n in non_exist_index:
-            count, color = inners[n]
-            query += "(outer)-[:contains {count: %d}]->(:Bag {color: '%s'}),\n" % (count, color)
-        query = query.rstrip('\n').rstrip(",")
+def get_data_state(data):
+    """Decide which state the data are in, return as a string e.g. ("1a2c").
+
+    Given example data like:
+        data = ('vibrant plum', [(5, 'faded blue'), (6, 'dotted black')])
+    We need to know whether:
+        1a. The outer bag exists.
+        1b. The outer bag does not exist
+        2a. The inner bags all exist.
+        2b. The inner bags all don't exist.
+        2c. Some inner bags exist; others don't.
+        2d. There are no inner bags defined. This is a terminal bag.
+    """
+    outer_exists = node_exists(data[0])
+    outer_state = "1a" if outer_exists else "1b"
+    inners = data[1]
+    if not inners:
+        inner_state = "2d"
+        return outer_state + inner_state
+    inners_exist = [node_exists(i[1]) for i in inners]
+    if all(inners_exist):
+        inner_state = "2a"
+    elif any(inners_exist):
+        inner_state = "2b"
     else:
-        query = "CREATE (outer:Bag {color: '%s'})" % outer_color
-        if inners:
-            query += ",\n"
-            for index, i in enumerate(inners):
-                c, n = i
-                query += "(b%s:Bag {color: '%s'})<-[:contains {count: %d}]-(outer)" % (
-                    index,
-                    n,
-                    c,
+        inner_state = "2c"
+
+    return outer_state + inner_state
+
+
+def build_cypher_query(data, state):
+    """Given rule data and a state from `get_data_state`, construct an idempotent Cypher query."""
+    # Initialize some empty lists for MATCH, CREATE, and MERGE statements
+    matches = []
+    creates = []
+    merges = []
+
+    outer_color = data[0]
+    match state:
+        case "1a2a":  # Outer bag and all inner bags exist; this should be a no-op.
+            return
+        case "1a2b":  # Outer bag exists, but all inner bags don't exist; match outer, create all inners + rel's.
+            outer_node_var = outer_color.replace(" ", "_")
+            matches.append(
+                "MATCH (%s:Bag {color: '%s'})" % (outer_node_var, outer_color)
+            )
+            inners = data[1]
+            for i in inners:
+                count, color = i
+                node_var = color.replace(" ", "_")
+                creates.append("CREATE (%s:Bag {color: '%s'})" % (node_var, color))
+                creates.append(
+                    "CREATE (%s)-[:contains {count: %d}]->(%s)"
+                    % (outer_node_var, count, node_var)
                 )
-                if index < len(inners) - 1:
-                    query += ",\n"
-    return query
+        case "1a2c":  # Outer bag exists, mixture of non-existent and existent inners.
+            outer_node_var = outer_color.replace(" ", "_")
+            matches.append(
+                "MATCH (%s:Bag {color: '%s'})" % (outer_node_var, outer_color)
+            )
+            inners = data[1]
+            for i in inners:
+                count, color = i
+                node_var = color.replace(" ", "_")
+                if node_exists(color):
+                    matches.append("MATCH (%s:Bag {color: '%s'})" % (node_var, color))
+                    merges.append(
+                        "MERGE (%s)-[:contains {count: %d}]->(%s)"
+                        % (outer_node_var, count, node_var)
+                    )
+                else:
+                    creates.append("CREATE (%s:Bag {color: '%s'})" % (node_var, color))
+                    creates.append(
+                        "CREATE (%s)-[:contains {count: %d}]->(%s)"
+                        % (outer_node_var, count, node_var)
+                    )
+        case "1a2d":  # Outer bag exists, no inner bags defined; this should be a no-op.
+            return
+        case "1b2a":  # Outer bag does not exist, but all inner bags exist; create outer bag + rel's.
+            outer_node_var = outer_color.replace(" ", "_")
+            creates.append(
+                "CREATE (%s:Bag {color: '%s'})" % (outer_node_var, outer_color)
+            )
+            inners = data[1]
+            for i in inners:
+                count, color = i
+                node_var = color.replace(" ", "_")
+                matches.append("MATCH (%s:Bag {color: '%s'})" % (node_var, color))
+                creates.append(
+                    "CREATE (%s)-[:contains {count: %d}]->(%s)"
+                    % (outer_node_var, count, node_var)
+                )
+        case "1b2b":  # Outer bag does not exist and neither do any inners. Create all the things.
+            outer_node_var = outer_color.replace(" ", "_")
+            creates.append(
+                "CREATE (%s:Bag {color: '%s'})" % (outer_node_var, outer_color)
+            )
+            inners = data[1]
+            for i in inners:
+                count, color = i
+                node_var = color.replace(" ", "_")
+                creates.append("CREATE (%s:Bag {color: '%s'})" % (node_var, color))
+                creates.append(
+                    "CREATE (%s)-[:contains {count: %d}]->(%s)"
+                    % (outer_node_var, count, node_var)
+                )
+        case "1b2c":  # Outer bag does not exist, and some inners exist. Create outer + rel's and some inners, match others.
+            outer_node_var = outer_color.replace(" ", "_")
+            creates.append(
+                "CREATE (%s:Bag {color: '%s'})" % (outer_node_var, outer_color)
+            )
+            inners = data[1]
+            for i in inners:
+                count, color = i
+                node_var = color.replace(" ", "_")
+                if node_exists(color):
+                    matches.append("MATCH (%s:Bag {color: '%s'})" % (node_var, color))
+                    merges.append(
+                        "MERGE (%s)-[:contains {count: %d}]->(%s)"
+                        % (outer_node_var, count, node_var)
+                    )
+                else:
+                    creates.append("CREATE (%s:Bag {color: '%s'})" % (node_var, color))
+                    creates.append(
+                        "CREATE (%s)-[:contains {count: %d}]->(%s)"
+                        % (outer_node_var, count, node_var)
+                    )
+        case "1b2d":  # Outer bag does not exist, and inners are not defined. Just create outer.
+            outer_node_var = outer_color.replace(" ", "_")
+            creates.append(
+                "CREATE (%s:Bag {color: '%s'})" % (outer_node_var, outer_color)
+            )
+        case _:  # Catch-all case that shouldn't be possible.
+            raise SystemExit(
+                f"{state}: Bag is in the netherrealm between existence and oblivion."
+            )
+
+    return "\n".join(matches + creates + merges)
 
 
 def main():
     rules = read_input("test_input.txt")
     rules_data = [rule_to_data(rule) for rule in rules]
-    queries = [rule_data_to_cypher(x) for x in rules_data[:3]]
-    for query in queries:
-        print(query)
+    states = [get_data_state(rd) for rd in rules_data]
+    data_states = [x for x in zip(rules_data, states)]
+    queries = []
+    for data, state in data_states:
+        print(f"Data: {data}, State: {state}")
+        query = build_cypher_query(data, state)
+        print(f"Query:\n{query}\n")
+        queries.append(query)
 
-    # with GraphDatabase.driver(NEO4J_API, auth=AUTH, encrypted=False) as driver:
-    #     driver.verify_connectivity()
-    #     driver.execute_query(query, database_=DB)
-    #     records, _, _ = driver.execute_query("MATCH (b:Bag) RETURN b")
-    #     for record in records:
-    #         print(record)
+    with GraphDatabase.driver(NEO4J_API, auth=AUTH, encrypted=False) as driver:
+        driver.verify_connectivity()
+        for query in queries:
+            driver.execute_query(query, database_=DB)
+            # records, _, _ = driver.execute_query("MATCH (b:Bag) RETURN b")
+            # for record in records:
+            #     print(record)
 
 
 if __name__ == "__main__":
