@@ -1,0 +1,2 @@
+MATCH (b:Bag)-[:contains*1..10]->(sg:Bag {color: 'shiny gold'}) RETURN count(DISTINCT b)
+MATCH (sg:Bag {color: 'shiny gold'})<-[:contains*1..9]-(o:Bag) RETURN count(DISTINCT o)
