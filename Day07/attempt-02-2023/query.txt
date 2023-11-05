@@ -1,2 +1,4 @@
 MATCH (b:Bag)-[:contains*1..10]->(sg:Bag {color: 'shiny gold'}) RETURN count(DISTINCT b)
 MATCH (sg:Bag {color: 'shiny gold'})<-[:contains*1..9]-(o:Bag) RETURN count(DISTINCT o)
+
+MATCH p = (sg:Bag {color: 'shiny gold'})-[c:contains*1..10]->(inner:Bag) RETURN reduce(total = 1, r IN relationships(p) | total * r.count) AS total
