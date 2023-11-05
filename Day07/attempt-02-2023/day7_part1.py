@@ -71,8 +71,8 @@ def get_data_state(data):
         1a. The outer bag exists.
         1b. The outer bag does not exist
         2a. The inner bags all exist.
-        2b. The inner bags all don't exist.
-        2c. Some inner bags exist; others don't.
+        2b. Some inner bags exist; others don't.
+        2c. The inner bags all don't exist.
         2d. There are no inner bags defined. This is a terminal bag.
     """
     outer_exists = node_exists(data[0])
@@ -103,7 +103,7 @@ def build_cypher_query(data, state):
     match state:
         case "1a2a":  # Outer bag and all inner bags exist; this should be a no-op.
             return
-        case "1a2b":  # Outer bag exists, but all inner bags don't exist; match outer, create all inners + rel's.
+        case "1a2b":  # Outer bag exists, some inner bags don't exist; match outer, create some inners + rel's.
             outer_node_var = outer_color.replace(" ", "_")
             matches.append(
                 "MATCH (%s:Bag {color: '%s'})" % (outer_node_var, outer_color)
@@ -111,13 +111,16 @@ def build_cypher_query(data, state):
             inners = data[1]
             for i in inners:
                 count, color = i
-                node_var = color.replace(" ", "_")
-                creates.append("CREATE (%s:Bag {color: '%s'})" % (node_var, color))
+                node_var = color.replace(' ', '_')
+                if node_exists(color):
+                    matches.append("MATCH (%s:Bag {color: '%s'})" % (node_var, color))
+                else:
+                    creates.append("CREATE (%s:Bag {color: '%s'})" % (node_var, color))
                 creates.append(
                     "CREATE (%s)-[:contains {count: %d}]->(%s)"
                     % (outer_node_var, count, node_var)
                 )
-        case "1a2c":  # Outer bag exists, mixture of non-existent and existent inners.
+        case "1a2c":  # Outer bag exists, inners all don't exist.
             outer_node_var = outer_color.replace(" ", "_")
             matches.append(
                 "MATCH (%s:Bag {color: '%s'})" % (outer_node_var, outer_color)
@@ -155,7 +158,7 @@ def build_cypher_query(data, state):
                     "CREATE (%s)-[:contains {count: %d}]->(%s)"
                     % (outer_node_var, count, node_var)
                 )
-        case "1b2b":  # Outer bag does not exist and neither do any inners. Create all the things.
+        case "1b2b":  # Outer bag does not exist, and some inners do. Create what's necessary.
             outer_node_var = outer_color.replace(" ", "_")
             creates.append(
                 "CREATE (%s:Bag {color: '%s'})" % (outer_node_var, outer_color)
@@ -164,11 +167,21 @@ def build_cypher_query(data, state):
             for i in inners:
                 count, color = i
                 node_var = color.replace(" ", "_")
-                creates.append("CREATE (%s:Bag {color: '%s'})" % (node_var, color))
-                creates.append(
-                    "CREATE (%s)-[:contains {count: %d}]->(%s)"
-                    % (outer_node_var, count, node_var)
-                )
+                if node_exists(color):
+                    matches.append("MATCH (%s:Bag {color: '%s'})" % (node_var, color))
+                    merges.append(
+                        "MERGE (%s)-[:contains {count: %d}]->(%s)"
+                        % (outer_node_var, count, node_var)
+                    )
+                else:
+                    print(
+                        f"Node color {color} apparently doesn't exist. Creating new node"
+                    )
+                    creates.append("CREATE (%s:Bag {color: '%s'})" % (node_var, color))
+                    creates.append(
+                        "CREATE (%s)-[:contains {count: %d}]->(%s)"
+                        % (outer_node_var, count, node_var)
+                    )
         case "1b2c":  # Outer bag does not exist, and some inners exist. Create outer + rel's and some inners, match others.
             outer_node_var = outer_color.replace(" ", "_")
             creates.append(
@@ -220,6 +233,7 @@ def main():
     rules_data = [rule_to_data(rule) for rule in rules]
     for rdata in rules_data:
         state = get_data_state(rdata)
+        print(f'Data: {rdata}, State: {state}')
         if query := build_cypher_query(rdata, state):
             print(f"Query:\n{query}\n")
             run_cypher_query(query)
