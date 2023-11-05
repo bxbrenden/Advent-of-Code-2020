@@ -56,7 +56,9 @@ def node_exists(color):
     query = "MATCH (b:Bag {color: '%s'}) RETURN count(b)" % color
     with GraphDatabase.driver(NEO4J_API, auth=AUTH, encrypted=False) as driver:
         records, _, _ = driver.execute_query(query, database_=DB)
+    print(f"Records: {records}")
     count = records[0].values()[0]
+    print(f"Count: {count}")
     return count > 0
 
 
@@ -124,6 +126,7 @@ def build_cypher_query(data, state):
             for i in inners:
                 count, color = i
                 node_var = color.replace(" ", "_")
+                print(f"Checking if {color} bag exists...")
                 if node_exists(color):
                     matches.append("MATCH (%s:Bag {color: '%s'})" % (node_var, color))
                     merges.append(
@@ -175,6 +178,7 @@ def build_cypher_query(data, state):
             for i in inners:
                 count, color = i
                 node_var = color.replace(" ", "_")
+                print(f"Checking if {color} bag exists...")
                 if node_exists(color):
                     matches.append("MATCH (%s:Bag {color: '%s'})" % (node_var, color))
                     merges.append(
@@ -182,6 +186,9 @@ def build_cypher_query(data, state):
                         % (outer_node_var, count, node_var)
                     )
                 else:
+                    print(
+                        f"Node color {color} apparently doesn't exist. Creating new node"
+                    )
                     creates.append("CREATE (%s:Bag {color: '%s'})" % (node_var, color))
                     creates.append(
                         "CREATE (%s)-[:contains {count: %d}]->(%s)"
@@ -200,25 +207,24 @@ def build_cypher_query(data, state):
     return "\n".join(matches + creates + merges)
 
 
+def run_cypher_query(query):
+    """Execute a Cypher query against the Neo4j database."""
+    with GraphDatabase.driver(NEO4J_API, auth=AUTH, encrypted=False) as driver:
+        driver.verify_connectivity()
+        print("Executing query...")
+        driver.execute_query(query, database_=DB)
+
+
 def main():
     rules = read_input("test_input.txt")
     rules_data = [rule_to_data(rule) for rule in rules]
-    states = [get_data_state(rd) for rd in rules_data]
-    data_states = [x for x in zip(rules_data, states)]
-    queries = []
-    for data, state in data_states:
-        print(f"Data: {data}, State: {state}")
-        query = build_cypher_query(data, state)
-        print(f"Query:\n{query}\n")
-        queries.append(query)
-
-    with GraphDatabase.driver(NEO4J_API, auth=AUTH, encrypted=False) as driver:
-        driver.verify_connectivity()
-        for query in queries:
-            driver.execute_query(query, database_=DB)
-            # records, _, _ = driver.execute_query("MATCH (b:Bag) RETURN b")
-            # for record in records:
-            #     print(record)
+    for rdata in rules_data:
+        state = get_data_state(rdata)
+        if query := build_cypher_query(rdata, state):
+            print(f"Query:\n{query}\n")
+            run_cypher_query(query)
+        else:
+            print("No-op detected, skipping")
 
 
 if __name__ == "__main__":
