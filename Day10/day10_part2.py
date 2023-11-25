@@ -8,7 +8,12 @@ def read_input(input_file):
     try:
         with open(input_file, "r") as inp:
             input_str = inp.read().strip()
-            input_list = [int(n) for n in input_str.split("\n")]
+            input_list = sorted([int(n) for n in input_str.split("\n")])
+            if input_list[0] != 0:
+                input_list.insert(0, 0)
+            final_val = input_list[-1]
+            input_list.append(final_val + 3)
+            print('\n'.join([str(x) for x in sorted(input_list)]))
             return sorted(input_list)
     except (FileNotFoundError, PermissionError) as err:
         raise SystemExit(
@@ -166,7 +171,7 @@ def build_dag(puz):
 
 
 def main():
-    puz = read_input("sample_input.txt")
+    puz = read_input("puzzle_input.txt")
     create_base_nodes(puz)
     build_dag(puz)
     # create_all_relationships(puz)
