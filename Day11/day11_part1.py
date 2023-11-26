@@ -1,3 +1,4 @@
+import sys
 from copy import deepcopy
 from typing import List, Tuple
 
@@ -7,7 +8,7 @@ def usage() -> None:
     raise SystemExit("USAGE: python3 day11_part1.py <INPUT_FILE>")
 
 
-def read_input(name: str = "sample_input.txt") -> List[str]:
+def read_input(name: str) -> List[str]:
     """Read the input file and return list of lines."""
     try:
         with open(name, "r") as p:
@@ -161,28 +162,28 @@ def find_adjacent(pos: Tuple[int, int], grid: List[str]) -> Tuple[str, List[str]
 
 def find_tile_val(tile: str, adjacent: List[str]) -> str:
     """Decide whether to update a tile's value based on adjacent tiles."""
-    print(f'Tile is "{tile}", adjacent is {", ".join([str(x) for x in adjacent])}')
+    # print(f'Tile is "{tile}", adjacent is {", ".join([str(x) for x in adjacent])}')
     if tile == ".":
         # Current tile is not a seat, do nothing
-        print('Nothing to do, returning "."')
+        # print('Nothing to do, returning "."')
         return tile
 
     if tile == "L":
         # Current seat is empty, check surrounding seats
         if adjacent.count("#") == 0:
-            print('Found no occupied adjacent seats, returning "#"')
+            # print('Found no occupied adjacent seats, returning "#"')
             return "#"
         else:
-            print('At least one adjacent seat occupied, returning "L"')
+            # print('At least one adjacent seat occupied, returning "L"')
             return "L"
 
     if tile == "#":
         # Current seat is occupied, check surrounding seats
         if adjacent.count("#") >= 4:
-            print('Occupied adjacent seats >= 4, returning "L"')
+            # print('Occupied adjacent seats >= 4, returning "L"')
             return "L"
         else:
-            print('Occupied adjacent seats < 4, returning "#"')
+            # print('Occupied adjacent seats < 4, returning "#"')
             return "#"
     else:
         raise SystemExit(f'Tile "{str(tile)}" was not one of (".", "L", "#")')
@@ -195,11 +196,15 @@ def step(grid: List[str]) -> List[str]:
         # Iterate over each row
         for j in range(len(grid[1])):
             # Iterate over each column
-            print(f'Checking tile in row {str(i).zfill(2)}, column {str(j).zfill(2)}')
+            # print(f'Checking tile in row {str(i).zfill(2)}, column {str(j).zfill(2)}')
             tile, adjacent = find_adjacent((i, j), grid)
             new_grid[i][j] = find_tile_val(tile, adjacent)
 
-    return new_grid
+    print_grid(new_grid)
+    if new_grid == grid:
+        return new_grid
+    else:
+        return step(new_grid)
 
 
 def print_grid(grid: List[str]) -> None:
@@ -211,11 +216,21 @@ def print_grid(grid: List[str]) -> None:
     print('\n')
 
 
+def count_occupied_seats(final_form: List[str]) -> int:
+    """After the grid stops changing, return a tally of occupied seats."""
+    return sum([row.count("#") for row in final_form])
+
+
 def main():
-    grid = read_input()
+    try:
+        input_file = sys.argv[1]
+        grid = read_input(input_file)
+    except IndexError:
+        grid = read_input()
     print_grid(grid)
-    second_step = step(grid)
-    print_grid(second_step)
+    final_form = step(grid)
+    occupied_seats = count_occupied_seats(final_form)
+    print(f'ANSWER: {occupied_seats}')
 
 
 if __name__ == "__main__":
