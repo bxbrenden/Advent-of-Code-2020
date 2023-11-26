@@ -8,7 +8,7 @@ def usage() -> None:
     raise SystemExit("USAGE: python3 day11_part1.py <INPUT_FILE>")
 
 
-def read_input(name: str) -> List[str]:
+def read_input(name: str = "sample_input.txt") -> List[str]:
     """Read the input file and return list of lines."""
     try:
         with open(name, "r") as p:
@@ -189,22 +189,23 @@ def find_tile_val(tile: str, adjacent: List[str]) -> str:
         raise SystemExit(f'Tile "{str(tile)}" was not one of (".", "L", "#")')
 
 
-def step(grid: List[str]) -> List[str]:
+def step(grid: List[str], counter: int = 0) -> List[str]:
     """Take one step forward in the seating simulation."""
     new_grid = deepcopy(grid)
-    for i in range(len(grid[0])):
+    for i in range(len(grid)):
         # Iterate over each row
-        for j in range(len(grid[1])):
+        for j in range(len(grid[0])):
             # Iterate over each column
             # print(f'Checking tile in row {str(i).zfill(2)}, column {str(j).zfill(2)}')
             tile, adjacent = find_adjacent((i, j), grid)
             new_grid[i][j] = find_tile_val(tile, adjacent)
 
-    print_grid(new_grid)
     if new_grid == grid:
-        return new_grid
+        return (new_grid, counter)
     else:
-        return step(new_grid)
+        print_grid(new_grid)
+        counter += 1
+        return step(new_grid, counter)
 
 
 def print_grid(grid: List[str]) -> None:
@@ -223,14 +224,18 @@ def count_occupied_seats(final_form: List[str]) -> int:
 
 def main():
     try:
-        input_file = sys.argv[1]
-        grid = read_input(input_file)
-    except IndexError:
-        grid = read_input()
-    print_grid(grid)
-    final_form = step(grid)
-    occupied_seats = count_occupied_seats(final_form)
-    print(f'ANSWER: {occupied_seats}')
+        try:
+            input_file = sys.argv[1]
+            grid = read_input(input_file)
+        except IndexError:
+            grid = read_input()
+        print_grid(grid)
+        final_form, total_steps = step(grid)
+        occupied_seats = count_occupied_seats(final_form)
+        print(f'Ran for {total_steps} rounds')
+        print(f'ANSWER: {occupied_seats}')
+    except BrokenPipeError:
+        sys.exit(0)
 
 
 if __name__ == "__main__":
