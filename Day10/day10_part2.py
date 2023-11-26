@@ -9,11 +9,11 @@ def read_input(input_file):
         with open(input_file, "r") as inp:
             input_str = inp.read().strip()
             input_list = sorted([int(n) for n in input_str.split("\n")])
-            if input_list[0] != 0:
+            if 0 not in input_list:
                 input_list.insert(0, 0)
             final_val = input_list[-1]
             input_list.append(final_val + 3)
-            print('\n'.join([str(x) for x in sorted(input_list)]))
+            print("\n".join([str(x) for x in sorted(input_list)]))
             return sorted(input_list)
     except (FileNotFoundError, PermissionError) as err:
         raise SystemExit(
@@ -151,7 +151,8 @@ def build_dag(puz):
     first = puz[0]
     query = "MATCH (a:Adapter {name: $first})\n"
     query += "MATCH (o:Adapter) WHERE o.name > a.name AND o.name - a.name <= 3\n"
-    query += "MERGE (a)-[:converts]->(o)"
+    query += "MERGE (a)-[c:converts]->(o)\n"
+    query += "RETURN count(c) as connections"
     URI = "bolt://localhost:7687"
     AUTH = ("", "")
     with GraphDatabase.driver(URI, auth=AUTH) as client:
@@ -163,7 +164,8 @@ def build_dag(puz):
 
         # Get the result
         for record in records:
-            print(record["name"])
+            conns = record["connections"]
+            print(f"({first}) has {conns} connections")
     if len(puz) > 2:
         return build_dag(puz[1:])
     else:
@@ -174,6 +176,28 @@ def main():
     puz = read_input("puzzle_input.txt")
     create_base_nodes(puz)
     build_dag(puz)
+    """NOTE:
+    I solved the final part with a Cypher query in memgraph.
+    I had to break the query into 3 parts because it was such a massive
+    one that it filled my 128GB of RAM!
+
+    My 3 queries were:
+
+    MATCH p=(a:Adapter {name: 0})-[r:converts*1..56]->(z:Adapter {name: 85})
+    RETURN count(distinct(p)) // 11239424
+
+    MATCH q=(a:Adapter {name: 85})-[r:converts*1..30]->(z:Adapter {name: 129})
+    RETURN count(distinct(q)) // 10976
+
+    MATCH qq=(a:Adapter {name: 129})-[:converts*1..30]->(z:Adapter {name: 175})
+    RETURN count(distinct(qq)) // 784
+
+    With those 3 queries returned, I multiplied their answers to get my final answer:
+    ANSWER = 11239424 * 10976 * 784
+
+    Everything in main() below this line was not really that useful.
+    """
+
     # create_all_relationships(puz)
     # assert validate_inner_relationships() == 0
     # assert validate_edge_relationships(puz) == [0, 0]
