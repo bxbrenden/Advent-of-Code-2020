@@ -69,14 +69,15 @@ def search_diagonal(pos: Tuple[int, int], grid: List[str]) -> List[str]:
             x -= 1
             y += 1
             print(f"Diag up right: searching at coordinate ({x}, {y})")
-            if any([coord < 0 for coord in [x, y]]):
+            if y >= len(grid[0]) or x < 0:
+            # if any([coord < 0 for coord in [x, y]]):
                 raise IndexError
             diag_up_right = grid[x][y]
             if diag_up_right in ("#", "L"):
                 print(f"Finished with diag up right: {str(diag_up_right)}")
                 break
         except IndexError:
-            print(f"Out of bounds, finished with diag up-right {str(diag_up_left)}")
+            print(f"Out of bounds, finished with diag up-right {str(diag_up_right)}")
             break
 
     # Look straight left
@@ -102,7 +103,8 @@ def search_diagonal(pos: Tuple[int, int], grid: List[str]) -> List[str]:
             x += 1
             y -= 1
             print(f"Diag down left: searching at coordinate ({x}, {y})")
-            if any([coord < 0 for coord in [x, y]]):
+            if x >= len(grid[0]) or y < 0:
+            # if any([coord < 0 for coord in [x, y]]):
                 raise IndexError
             diag_down_left = grid[x][y]
             if diag_down_left in ("#", "L"):
@@ -118,7 +120,8 @@ def search_diagonal(pos: Tuple[int, int], grid: List[str]) -> List[str]:
         try:
             x += 1
             print(f"Straight down: searching at coordinate ({x}, {y})")
-            if any([coord < 0 for coord in [x, y]]):
+            if x >= len(grid[0]) or y < 0:
+            # if any([coord < 0 for coord in [x, y]]):
                 raise IndexError
             straight_down = grid[x][y]
             if straight_down in ("#", "L"):
@@ -135,7 +138,8 @@ def search_diagonal(pos: Tuple[int, int], grid: List[str]) -> List[str]:
             x += 1
             y += 1
             print(f"Diag down right: searching at coordinate ({x}, {y})")
-            if any([coord < 0 for coord in [x, y]]):
+            if any([coord >= len(grid[0]) for coord in [x, y]]):
+            # if any([coord < 0 for coord in [x, y]]):
                 raise IndexError
             diag_down_right = grid[x][y]
             if diag_down_right in ("#", "L"):
@@ -151,7 +155,8 @@ def search_diagonal(pos: Tuple[int, int], grid: List[str]) -> List[str]:
         try:
             y += 1
             print(f"Straight right: searching at coordinate ({x}, {y})")
-            if any([coord < 0 for coord in [x, y]]):
+            if y >= len(grid[0]):
+            # if any([coord < 0 for coord in [x, y]]):
                 raise IndexError
             straight_right = grid[x][y]
             if straight_right in ("#", "L"):
@@ -389,7 +394,7 @@ def main():
         except IndexError:
             grid = read_input()
         print_grid(grid)
-        bunch_of_coords = search_diagonal((1, 7), grid)
+        bunch_of_coords = search_diagonal((9, 5), grid)
         print(f'Coordinates: {", ".join([str(x) for x in bunch_of_coords])}')
         # final_form, total_steps = step(grid)
         # occupied_seats = count_occupied_seats(final_form)
