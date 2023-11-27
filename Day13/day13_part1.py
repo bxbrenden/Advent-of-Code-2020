@@ -24,17 +24,18 @@ def get_next_bus(earliest: int, schedule: Tuple[int, List[int]]) -> List[Tuple[i
     possible = []
     for num in schedule:
         next_bus = ((earliest // num) * num) + num
+        print(f'Next departure for bus #{num}: {next_bus}')
         possible.append((num, next_bus))
 
     soonest_bus_index = 0
     smallest_diff = 0
     for i, p in enumerate(possible):
         if i == 0:
-            smallest_diff = abs(earliest - p[1])
+            smallest_diff = p[1] - earliest
             soonest_bus_index = i
             continue
-        new_diff = earliest - p[1]
-        if abs(new_diff) < smallest_diff:
+        new_diff = p[1] - earliest
+        if new_diff < smallest_diff:
             soonest_bus_index = i
             smallest_diff = new_diff
 
